@@ -1,23 +1,26 @@
 import numpy as np
 import pandas as pd
-
 from sklearn.base import BaseEstimator, TransformerMixin
 
 
-# categorical missing value imputer
 class CategoricalImputer(BaseEstimator, TransformerMixin):
+    """Categorical data missing value imputer."""
 
-    def __init__(self, variables=None):
+    def __init__(self, variables=None) -> None:
         if not isinstance(variables, list):
             self.variables = [variables]
         else:
             self.variables = variables
 
-    def fit(self, X, y=None):
-        # we need the fit statement to accomodate the sklearn pipeline
+    def fit(self, X: pd.DataFrame, y: pd.Series = None
+            ) -> 'CategoricalImputer':
+        """Fit statement to accomodate the sklearn pipeline."""
+
         return self
 
-    def transform(self, X):
+    def transform(self, X: pd.DataFrame) -> pd.DataFrame:
+        """Apply the transforms to the dataframe."""
+
         X = X.copy()
         for feature in self.variables:
             X[feature] = X[feature].fillna('Missing')
@@ -25,8 +28,8 @@ class CategoricalImputer(BaseEstimator, TransformerMixin):
         return X
 
 
-# Numerical missing value imputer
 class NumericalImputer(BaseEstimator, TransformerMixin):
+    """Numerical missing value imputer."""
 
     def __init__(self, variables=None):
         if not isinstance(variables, list):
@@ -37,24 +40,21 @@ class NumericalImputer(BaseEstimator, TransformerMixin):
     def fit(self, X, y=None):
         # persist mode in a dictionary
         self.imputer_dict_ = {}
-        
         for feature in self.variables:
             self.imputer_dict_[feature] = X[feature].mode()[0]
         return self
 
     def transform(self, X):
-
         X = X.copy()
         for feature in self.variables:
             X[feature].fillna(self.imputer_dict_[feature], inplace=True)
         return X
 
 
-# Temporal variable calculator
 class TemporalVariableEstimator(BaseEstimator, TransformerMixin):
+    """Temporal variable calculator."""
 
     def __init__(self, variables=None, reference_variable=None):
-        
         if not isinstance(variables, list):
             self.variables = [variables]
         else:
@@ -74,20 +74,17 @@ class TemporalVariableEstimator(BaseEstimator, TransformerMixin):
         return X
 
 
-# frequent label categorical encoder
 class RareLabelCategoricalEncoder(BaseEstimator, TransformerMixin):
+    """Rare label categorical encoder"""
 
     def __init__(self, tol=0.05, variables=None):
-        
         self.tol = tol
-        
         if not isinstance(variables, list):
             self.variables = [variables]
         else:
             self.variables = variables
 
     def fit(self, X, y=None):
-
         # persist frequent labels in dictionary
         self.encoder_dict_ = {}
 
@@ -102,14 +99,14 @@ class RareLabelCategoricalEncoder(BaseEstimator, TransformerMixin):
     def transform(self, X):
         X = X.copy()
         for feature in self.variables:
-            X[feature] = np.where(X[feature].isin(self.encoder_dict_[
-                    feature]), X[feature], 'Rare')
+            X[feature] = np.where(X[feature].isin(
+                self.encoder_dict_[feature]), X[feature], 'Rare')
 
         return X
 
 
-# string to numbers categorical encoder
 class CategoricalEncoder(BaseEstimator, TransformerMixin):
+    """String to numbers categorical encoder."""
 
     def __init__(self, variables=None):
         if not isinstance(variables, list):
@@ -125,7 +122,8 @@ class CategoricalEncoder(BaseEstimator, TransformerMixin):
         self.encoder_dict_ = {}
 
         for var in self.variables:
-            t = temp.groupby([var])['target'].mean().sort_values(ascending=True).index
+            t = temp.groupby([var])['target'].mean().sort_values(
+                ascending=True).index
             self.encoder_dict_[var] = {k: i for i, k in enumerate(t, 0)}
 
         return self
@@ -136,11 +134,20 @@ class CategoricalEncoder(BaseEstimator, TransformerMixin):
         for feature in self.variables:
             X[feature] = X[feature].map(self.encoder_dict_[feature])
 
+        # check if transformer introduces NaN
+        if X[self.variables].isnull().any().any():
+            null_counts = X[self.variables].isnull().any()
+            vars_ = {key: value for (key, value) in null_counts.items()
+                     if value is True}
+            raise ValueError(
+                f'Categorical encoder has introduced NaN when '
+                f'transforming categorical variables: {vars_.keys()}')
+
         return X
 
 
-# logarithm transformer
 class LogTransformer(BaseEstimator, TransformerMixin):
+    """Logarithm transformer."""
 
     def __init__(self, variables=None):
         if not isinstance(variables, list):
@@ -155,6 +162,13 @@ class LogTransformer(BaseEstimator, TransformerMixin):
     def transform(self, X):
         X = X.copy()
 
+        # check that the values are non-negative for log transform
+        if not (X[self.variables] > 0).all().all():
+            vars_ = self.variables[(X[self.variables] <= 0).any()]
+            raise ValueError(
+                f"Variables contain zero or negative values, "
+                f"can't apply log for vars: {vars_}")
+
         for feature in self.variables:
             X[feature] = np.log(X[feature])
 
@@ -164,7 +178,6 @@ class LogTransformer(BaseEstimator, TransformerMixin):
 class DropUnecessaryFeatures(BaseEstimator, TransformerMixin):
 
     def __init__(self, variables_to_drop=None):
-        
         self.variables = variables_to_drop
 
     def fit(self, X, y=None):
@@ -176,4 +189,3 @@ class DropUnecessaryFeatures(BaseEstimator, TransformerMixin):
         X = X.drop(self.variables, axis=1)
 
         return X
-
