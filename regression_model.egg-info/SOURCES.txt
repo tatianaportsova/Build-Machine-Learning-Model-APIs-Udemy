@@ -3,6 +3,11 @@ README.md
 requirements.txt
 setup.py
 ./requirements.txt
+ml_api/__init__.py
+ml_api/run.py
+ml_api/api/__init__.py
+ml_api/api/app.py
+ml_api/api/controller.py
 regression_model/VERSION
 regression_model/__init__.py
 regression_model/pipeline.py
