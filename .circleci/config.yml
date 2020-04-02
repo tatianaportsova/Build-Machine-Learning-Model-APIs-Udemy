@@ -48,8 +48,8 @@ jobs:
             . venv/bin/activate
             chmod +x ./scripts/fetch_kaggle_dataset.sh ./scripts/publish_model.sh
             ./scripts/fetch_kaggle_dataset.sh
-            PYTHONPATH= python3 regression_model/train_pipeline.py
-            ./scripts/publish_model.sh
+            PYTHONPATH=. python3 regression_model/train_pipeline.py
+            ./scripts/publish_model.sh .
 workflows:
   version: 2
   test-all:
