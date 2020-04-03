@@ -14,8 +14,7 @@ def test_prediction_endpoint_validation_200(flask_test_client):
     post_json = test_data.to_json(orient='records')
 
     # When
-    response = flask_test_client.post('/v1/predict/regression',
-                                      json=json.loads(post_json))
+    response = flask_test_client.post('/v1/predict/regression',json=json.loads(post_json))
 
     # Then
     assert response.status_code == 200
